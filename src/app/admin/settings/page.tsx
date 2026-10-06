@@ -7,6 +7,9 @@ import { RequireAdmin } from "@/components/auth/require-admin";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Input, Label } from "@/components/ui/field";
 import { getAppSettings, updateAppSettings } from "@/services/settings.service";
+import { saveMonnifySecrets } from "@/services/monnify-settings.service";
+import { saveSquadSecrets } from "@/services/squad-settings.service";
+import { clearPaymentProviderSettingsCache } from "@/services/payments.service";
 import { useUserStore } from "@/stores/user.store";
 import { toastError, toastSuccess } from "@/stores/toast.store";
 
@@ -32,6 +35,18 @@ export default function AdminSettingsPage() {
     codEnabled: true,
     paystackEnabled: false,
     korapayEnabled: false,
+    monnifyEnabled: false,
+    monnifySandbox: true,
+    monnifySandboxApiKey: "",
+    monnifySandboxSecretKey: "",
+    monnifySandboxContractCode: "",
+    monnifyLiveApiKey: "",
+    monnifyLiveSecretKey: "",
+    monnifyLiveContractCode: "",
+    squadEnabled: false,
+    squadSandbox: true,
+    squadSandboxSecretKey: "",
+    squadLiveSecretKey: "",
     flutterwaveEnabled: false,
     orderEmailEnabled: true,
     promoPushEnabled: true,
@@ -64,6 +79,10 @@ export default function AdminSettingsPage() {
           codEnabled: settings.payments?.codEnabled ?? true,
           paystackEnabled: settings.payments?.paystackEnabled ?? false,
           korapayEnabled: settings.payments?.korapayEnabled ?? false,
+          monnifyEnabled: settings.payments?.monnifyEnabled ?? false,
+          monnifySandbox: settings.payments?.monnifySandbox ?? true,
+          squadEnabled: settings.payments?.squadEnabled ?? false,
+          squadSandbox: settings.payments?.squadSandbox ?? true,
           flutterwaveEnabled: settings.payments?.flutterwaveEnabled ?? false,
           orderEmailEnabled: settings.notifications?.orderEmailEnabled ?? true,
           promoPushEnabled: settings.notifications?.promoPushEnabled ?? true,
@@ -83,6 +102,15 @@ export default function AdminSettingsPage() {
     if (!actor.id) return;
     setSaving(true);
     try {
+      await saveMonnifySecrets({
+        sandboxApiKey: form.monnifySandboxApiKey,
+        sandboxSecretKey: form.monnifySandboxSecretKey,
+        sandboxContractCode: form.monnifySandboxContractCode,
+        liveApiKey: form.monnifyLiveApiKey,
+        liveSecretKey: form.monnifyLiveSecretKey,
+        liveContractCode: form.monnifyLiveContractCode,
+      });
+      await saveSquadSecrets({ sandboxSecretKey: form.squadSandboxSecretKey, liveSecretKey: form.squadLiveSecretKey });
       await updateAppSettings(
         {
           storeInformation: {
@@ -109,6 +137,10 @@ export default function AdminSettingsPage() {
             codEnabled: form.codEnabled,
             paystackEnabled: form.paystackEnabled,
             korapayEnabled: form.korapayEnabled,
+            monnifyEnabled: form.monnifyEnabled,
+            monnifySandbox: form.monnifySandbox,
+            squadEnabled: form.squadEnabled,
+            squadSandbox: form.squadSandbox,
             flutterwaveEnabled: form.flutterwaveEnabled,
           },
           paymentSecrets: {
@@ -128,6 +160,8 @@ export default function AdminSettingsPage() {
         },
         actor,
       );
+      setForm(f => ({ ...f, squadSandboxSecretKey: "", squadLiveSecretKey: "", monnifySandboxApiKey: "", monnifySandboxSecretKey: "", monnifySandboxContractCode: "", monnifyLiveApiKey: "", monnifyLiveSecretKey: "", monnifyLiveContractCode: "" }));
+      clearPaymentProviderSettingsCache();
       toastSuccess("Settings saved");
     } catch (err) {
       toastError(
@@ -277,6 +311,11 @@ export default function AdminSettingsPage() {
               }
             />
             <Checkbox
+              label="Squad by GTBank enabled"
+              checked={form.squadEnabled}
+              onChange={() => setForm(f => ({ ...f, squadEnabled: !f.squadEnabled }))}
+            />
+            <Checkbox
               label="Flutterwave enabled"
               checked={form.flutterwaveEnabled}
               onChange={() =>
@@ -290,6 +329,46 @@ export default function AdminSettingsPage() {
                 setForm((f) => ({ ...f, codEnabled: !f.codEnabled }))
               }
             />
+          </div>
+
+          <div className="space-y-3 rounded-lg border border-line p-4">
+            <h3 className="text-[13px] font-medium text-ink">Monnify</h3>
+            <Checkbox label="Monnify enabled" checked={form.monnifyEnabled} onChange={() => setForm(f => ({ ...f, monnifyEnabled: !f.monnifyEnabled }))} />
+            <Checkbox label="Use Monnify sandbox (test payments)" checked={form.monnifySandbox} onChange={() => setForm(f => ({ ...f, monnifySandbox: !f.monnifySandbox }))} />
+            <p className="text-[12px] text-muted">Save API key, secret key and contract code for the selected environment before enabling Monnify. Blank fields keep saved values.</p>
+            <div><Label htmlFor="monnifySandboxApiKey">Monnify Sandbox API Key</Label>
+              <Input id="monnifySandboxApiKey" type="password" autoComplete="new-password" value={form.monnifySandboxApiKey} placeholder="Enter Monnify sandbox api key" onChange={e => setForm(f => ({ ...f, monnifySandboxApiKey: e.target.value }))} /></div>
+            <div><Label htmlFor="monnifySandboxSecretKey">Monnify Sandbox Secret Key</Label>
+              <Input id="monnifySandboxSecretKey" type="password" autoComplete="new-password" value={form.monnifySandboxSecretKey} placeholder="Enter Monnify sandbox secret key" onChange={e => setForm(f => ({ ...f, monnifySandboxSecretKey: e.target.value }))} /></div>
+            <div><Label htmlFor="monnifySandboxContractCode">Monnify Sandbox Contract Code</Label>
+              <Input id="monnifySandboxContractCode" type="password" autoComplete="new-password" value={form.monnifySandboxContractCode} placeholder="Enter Monnify sandbox contract code" onChange={e => setForm(f => ({ ...f, monnifySandboxContractCode: e.target.value }))} /></div>
+            <div><Label htmlFor="monnifyLiveApiKey">Monnify Live API Key</Label>
+              <Input id="monnifyLiveApiKey" type="password" autoComplete="new-password" value={form.monnifyLiveApiKey} placeholder="Enter Monnify live api key" onChange={e => setForm(f => ({ ...f, monnifyLiveApiKey: e.target.value }))} /></div>
+            <div><Label htmlFor="monnifyLiveSecretKey">Monnify Live Secret Key</Label>
+              <Input id="monnifyLiveSecretKey" type="password" autoComplete="new-password" value={form.monnifyLiveSecretKey} placeholder="Enter Monnify live secret key" onChange={e => setForm(f => ({ ...f, monnifyLiveSecretKey: e.target.value }))} /></div>
+            <div><Label htmlFor="monnifyLiveContractCode">Monnify Live Contract Code</Label>
+              <Input id="monnifyLiveContractCode" type="password" autoComplete="new-password" value={form.monnifyLiveContractCode} placeholder="Enter Monnify live contract code" onChange={e => setForm(f => ({ ...f, monnifyLiveContractCode: e.target.value }))} /></div>
+          </div>
+          <div className="space-y-3">
+            <h3 className="text-[13px] font-medium text-ink">Squad by GTBank</h3>
+            <Checkbox label="Use Squad sandbox (test payments)"
+              checked={form.squadSandbox}
+              onChange={() => setForm(f => ({ ...f, squadSandbox: !f.squadSandbox }))} />
+            <p className="text-[11px] text-muted">
+              Save the key for the selected environment before enabling Squad. Leave a key blank to keep its saved value.
+            </p>
+            <div>
+              <Label htmlFor="squadSandboxSecret">Squad Sandbox Secret Key</Label>
+              <Input id="squadSandboxSecret" type="password" autoComplete="new-password"
+                value={form.squadSandboxSecretKey} placeholder="Enter Squad sandbox secret key"
+                onChange={e => setForm(f => ({ ...f, squadSandboxSecretKey: e.target.value }))} />
+            </div>
+            <div>
+              <Label htmlFor="squadLiveSecret">Squad Live Secret Key</Label>
+              <Input id="squadLiveSecret" type="password" autoComplete="new-password"
+                value={form.squadLiveSecretKey} placeholder="Enter Squad live secret key"
+                onChange={e => setForm(f => ({ ...f, squadLiveSecretKey: e.target.value }))} />
+            </div>
           </div>
 
           <div className="space-y-3">

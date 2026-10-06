@@ -49,6 +49,10 @@ export type AppSettingsDocument = {
   socialLinks?: SocialLinks;
   /** Public payment toggles — never store secret keys here. */
   payments?: {
+    monnifyEnabled?: boolean;
+    monnifySandbox?: boolean;
+    squadEnabled?: boolean;
+    squadSandbox?: boolean;
     codEnabled?: boolean;
     paystackEnabled?: boolean;
     korapayEnabled?: boolean;
